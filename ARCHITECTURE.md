@@ -2,66 +2,57 @@ System Overview
 The Multi-Modal Prompt Refinement System is designed to process various input types (text, images, documents) and transform them into structured, AI-ready prompts. The system follows a layered architecture pattern for maintainability, scalability, and clean separation of concerns.
 
 Architecture Diagram
-┌─────────────────────────────────────────┐
-│           CLIENT / API CONSUMER          │
-└─────────────────────────────────────────┘
-                      │
-                      ▼ HTTP/REST
-┌─────────────────────────────────────────┐
-│             SERVER LAYER                 │
-├─────────────────────────────────────────┤
-│ • Middleware                            │
-│ • Error Handling                        │
-│ • refine                                │
-│ • CORS                                  │
-│ • Validation                            │
-│ • batch                                 │
-│ • Body Parse                            │
-│ • File Upload                           │
-│ • health                                │
-│ • Mutter                                │
-│ • API Errors                            │
-└─────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────┐
-│             SERVICE LAYER                │
-├─────────────────────────────────────────┤
-│ • Request Validation                    │
-│ • Input Sanitization                    │
-│ • Service Orchestration                 │
-│ • Response Formatting                   │
-│ • refineController.js                   │
-│ • Multi-Batch Processing                │
-└─────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────┐
-│         PROCESSING LOGIC                 │
-├─────────────────────────────────────────┤
-│ • Modal Processing Logic                │
-│ • Style-Based Refinement                │
-│ • Template Assembly                     │
-└─────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────┐
-│    VALIDATION & QUALITY CHECKS           │
-├─────────────────────────────────────────┤
-│     ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│     │Processor│ │Processor│ │Processor│ │
-│     └─────────┘ └─────────┘ └─────────┘ │
-├─────────────────────────────────────────┤
-│   Document    Image        Text         │
-└─────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────┐
-│            ACTIVATION / OUTPUT           │
-├─────────────────────────────────────────┤
-│ • Activate Windows                      │
-│ • Addresser                             │
-└─────────────────────────────────────────┘Core Components
+CLIENT / API CONSUMER
+HTTP/REST communication
+
+SERVER LAYER
+Error Handling
+
+refine
+
+CORS
+
+Validation
+
+batch
+
+Body Parse
+
+File Upload
+
+health
+
+Mutter
+
+API Errors
+
+SERVICE LAYER
+Request Validation
+
+Input Sanitization
+
+Service Orchestration
+
+Response Formatting
+
+refineController.js
+
+Multi-Batch Processing
+
+PROCESSING LOGIC
+Modal Processing Logic
+
+Style-Based Refinement
+
+Template Assembly
+
+VALIDATION & QUALITY CHECKS
+Multiple Processors
+
+Content types: Document, Image, Text
+
+
+Core Components
 1. Server Layer (Express.js)
 Purpose: HTTP server management and routing
 
