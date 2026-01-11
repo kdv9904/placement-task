@@ -8,8 +8,8 @@
 ## Installation Steps
 
 ### 1. Clone Repository
-git clone <repository-url>
-cd prompt-refinement-system
+git clone https://github.com/kdv9904/placement-task.git
+cd placement-task
 
 
 ### 2. Create uploads folder in root directory
