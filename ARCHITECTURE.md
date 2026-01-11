@@ -1,335 +1,234 @@
-Executive Summary
-This document outlines the architecture for a Multi-Modal Prompt Refinement System designed to process diverse input types (text, images, documents) and transform them into standardized, structured prompts suitable for downstream AI processing. The system emphasizes modularity, extensibility, and consistent output formatting while handling various input modalities.
-
 Architecture Overview
 System Philosophy
-The system follows a "Unified Refinement Pipeline" approach where all input types are eventually converted into a canonical text representation that undergoes refinement according to a well-defined template. The architecture is designed to be:
 
-Modular: Each processing component can be independently developed and replaced
+The system is built on a Unified Refinement Pipeline model. Regardless of the original input modality, all data is normalized into a canonical textual representation and refined using a controlled, template-driven process.
 
-Extensible: New input types can be added with minimal changes
+Key architectural principles include:
 
-Consistent: Output follows a strict schema regardless of input type
+Modularity – Each processing component is isolated and independently replaceable.
 
-Fault-Tolerant: Graceful degradation when certain information cannot be extracted
+Extensibility – New input formats and processing stages can be added with minimal impact.
 
-High-Level Architecture Diagram:
-┌─────────────────────────────────────────────────────────────┐
-│                     Client Applications                       │
-└───────────────────────┬──────────────────────────────────────┘
-                        │ (HTTP/REST)
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    API Gateway Layer                         │
-│  ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐  │
-│  │  /health    │  │   /refine   │  │  /refine/batch     │  │
-│  │ (GET)       │  │  (POST)     │  │  (POST)            │  │
-│  └─────────────┘  └─────────────┘  └────────────────────┘  │
-└───────────────────────┬──────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Request Processing Layer                    │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │            Input Validation & Routing                │  │
-│  │  • Content-Type detection                            │  │
-│  │  • File type validation                              │  │
-│  │  • Size limits enforcement                           │  │
-│  └──────────────────────────────────────────────────────┘  │
-└───────────────────────┬──────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Input Processing Pipeline                    │
-│                                                             │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    │
-│  │   Text      │    │   Image     │    │  Document   │    │
-│  │  Parser     │    │  Processor  │    │   Parser    │    │
-│  │             │    │             │    │             │    │
-│  │ • Clean     │    │ • OCR       │    │ • PDF text  │    │
-│  │ • Tokenize  │    │ • Object    │    │   extract   │    │
-│  │ • Chunk     │    │   detection │    │ • DOCX      │    │
-│  │             │    │ • Captioning│    │   parsing   │    │
-│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘    │
-│         │                  │                   │           │
-│         └──────────────────┼───────────────────┘           │
-│                            │                               │
-│                  ┌─────────▼──────────┐                    │
-│                  │  Content Unifier   │                    │
-│                  │                    │                    │
-│                  │ • Combine multi-   │                    │
-│                  │   modal content    │                    │
-│                  │ • Context alignment│                    │
-│                  │ • Priority sorting │                    │
-│                  └─────────┬──────────┘                    │
-└────────────────────────────┼───────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Refinement Engine                           │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │               Prompt Template System                  │  │
-│  │  • Template selection based on content type          │  │
-│  │  • Structured field population                       │  │
-│  │  • Style application (technical/creative/etc.)       │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │             LLM Integration Layer                     │  │
-│  │  • Optional: LLM-based enhancement                   │  │
-│  │  • Consistency checking                              │  │
-│  │  • Quality validation                                │  │
-│  └──────────────────────────────────────────────────────┘  │
-└───────────────────────┬──────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Output Formatting Layer                     │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              Schema Validation                        │  │
-│  │  • Template compliance                               │  │
-│  │  • Required field check                              │  │
-│  │  • Format standardization                            │  │
-│  └──────────────────────────────────────────────────────┘  │
-└───────────────────────┬──────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Response Builder                          │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │               Metadata Attachment                     │  │
-│  │  • Processing timestamp                              │  │
-│  │  • Input characteristics                            │  │
-│  │  • Assumptions made                                 │  │
-│  └──────────────────────────────────────────────────────┘  │
-└───────────────────────┬──────────────────────────────────────┘
-                        │
-                        ▼
-                   JSON Response
-1. Input Processing Layer
-1.1 Text Parser Module
-class TextParser {
-  process(text, config) {
-    return {
-      rawText: text,
-      cleanedText: this.cleanText(text),
-      tokens: this.tokenize(text),
-      chunks: this.chunkBySemantics(text),
-      metadata: {
-        language: this.detectLanguage(text),
-        length: text.length,
-        hasQuestions: this.containsQuestions(text)
-      }
-    };
-  }
-}
-1.2 Image Processor Module
-class ImageProcessor {
-  async process(imageBuffer) {
-    return {
-      textContent: await this.extractOCR(imageBuffer),
-      visualDescription: await this.generateCaption(imageBuffer),
-      detectedObjects: await this.detectObjects(imageBuffer),
-      metadata: {
-        format: this.getImageFormat(imageBuffer),
-        dimensions: this.getDimensions(imageBuffer),
-        colors: this.extractDominantColors(imageBuffer)
-      }
-    };
-  }
-}
-1.3 Document Parser Module
-class DocumentProcessor {
-  async process(documentBuffer, fileType) {
-    return {
-      textContent: await this.extractText(documentBuffer, fileType),
-      structure: await this.analyzeStructure(documentBuffer, fileType),
-      keySections: await this.extractSections(documentBuffer),
-      metadata: {
-        pageCount: this.getPageCount(documentBuffer),
-        author: this.extractMetadata(documentBuffer),
-        creationDate: this.getCreationDate(documentBuffer)
-      }
-    };
-  }
-}
-2. Content Unifier
-class ContentUnifier {
-  unify(parsedContent) {
-    // Priority: Text > Document text > Image text > Image descriptions
-    const unified = {
-      primaryText: this.extractPrimaryContent(parsedContent),
-      supportingContent: this.extractSupportingContent(parsedContent),
-      visualContext: this.extractVisualContext(parsedContent),
-      constraints: this.extractConstraints(parsedContent),
-      crossReferences: this.findCrossReferences(parsedContent)
-    };
-    
-    return this.normalizeContext(unified);
-  }
-}
-3. Prompt Template System
-3.1 Template Schema Design
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "RefinedPrompt",
-  "type": "object",
-  "required": ["intent", "context", "requirements", "format"],
-  "properties": {
-    "metadata": {
-      "type": "object",
-      "properties": {
-        "inputType": {"type": "string"},
-        "processingTimestamp": {"type": "string", "format": "date-time"},
-        "sourceCharacteristics": {"type": "object"}
-      }
-    },
-    "intent": {
-      "type": "object",
-      "required": ["primaryObjective", "scope"],
-      "properties": {
-        "primaryObjective": {"type": "string"},
-        "scope": {"type": "string"},
-        "desiredOutcome": {"type": "string"},
-        "successCriteria": {"type": "array", "items": {"type": "string"}}
-      }
-    },
-    "context": {
-      "type": "object",
-      "properties": {
-        "background": {"type": "string"},
-        "constraints": {"type": "array", "items": {"type": "string"}},
-        "assumptions": {"type": "array", "items": {"type": "string"}},
-        "references": {"type": "array", "items": {"type": "string"}}
-      }
-    },
-    "requirements": {
-      "type": "object",
-      "properties": {
-        "functional": {"type": "array", "items": {"type": "string"}},
-        "technical": {"type": "array", "items": {"type": "string"}},
-        "stylistic": {"type": "object"},
-        "formatting": {"type": "object"}
-      }
-    },
-    "format": {
-      "type": "object",
-      "required": ["structure", "style"],
-      "properties": {
-        "structure": {"type": "string", "enum": ["narrative", "bullet-points", "step-by-step", "qa"]},
-        "style": {"type": "string", "enum": ["technical", "creative", "formal", "conversational", "analytical"]},
-        "tone": {"type": "string"},
-        "length": {"type": "object"}
-      }
-    }
-  }
-}
-3.2 Template Selection Logic
-class TemplateSelector {
-  selectTemplate(contentAnalysis) {
-    const { contentType, complexity, purpose } = contentAnalysis;
-    
-    const templates = {
-      'technical-spec': {
-        match: ['document', 'technical', 'specification'],
-        template: TechnicalSpecTemplate
-      },
-      'creative-brief': {
-        match: ['image', 'creative', 'design'],
-        template: CreativeBriefTemplate
-      },
-      'analytical-query': {
-        match: ['text', 'analytical', 'question'],
-        template: AnalyticalQueryTemplate
-      },
-      'instructional-guide': {
-        match: ['mixed', 'instructional', 'steps'],
-        template: InstructionalGuideTemplate
-      },
-      'general-purpose': {
-        match: ['default'],
-        template: GeneralPurposeTemplate
-      }
-    };
-    
-    return this.findBestMatch(contentAnalysis, templates);
-  }
-}
-4. Refinement Engine
-class RefinementEngine {
-  constructor(config) {
-    this.templateSystem = new TemplateSystem();
-    this.llmIntegration = new LLMIntegration(config.llmConfig);
-    this.validator = new OutputValidator();
-  }
-  
-  async refine(unifiedContent, style = 'balanced') {
-    // Step 1: Select appropriate template
-    const template = this.templateSystem.selectTemplate(unifiedContent);
-    
-    // Step 2: Populate template with content
-    const populated = template.populate(unifiedContent);
-    
-    // Step 3: Apply stylistic adjustments
-    const styled = this.applyStyle(populated, style);
-    
-    // Step 4: Optional LLM enhancement
-    if (this.config.useLLM) {
-      const enhanced = await this.llmIntegration.enhance(styled);
-      styled.enhancedContent = enhanced;
-    }
-    
-    // Step 5: Validate output
-    const validation = this.validator.validate(styled);
-    
-    if (!validation.valid) {
-      throw new RefinementError('Invalid output structure', validation.errors);
-    }
-    
-    return {
-      refinedPrompt: styled,
-      metadata: {
-        templateUsed: template.name,
-        styleApplied: style,
-        validation: validation,
-        assumptions: this.extractAssumptions(unifiedContent)
-      }
-    };
-  }
-}
+Consistency – Outputs strictly conform to a predefined schema.
+
+Fault Tolerance – Graceful degradation when partial data extraction occurs.
+
+High-Level Architecture Flow
+
+Client Applications
+→ API Gateway Layer
+→ Request Processing Layer
+→ Input Processing Pipeline
+→ Content Unifier
+→ Refinement Engine
+→ Output Formatting Layer
+→ Response Builder
+→ JSON Response
+
+API Gateway Layer
+
+Exposes RESTful endpoints for system interaction:
+
+GET /health – Service health check
+
+POST /refine – Single input refinement
+
+POST /refine/batch – Batch processing support
+
+Request Processing Layer
+
+Responsible for request validation and routing:
+
+Content-Type detection
+
+File type validation
+
+File size enforcement
+
+Routing to appropriate processing modules
+
+Input Processing Pipeline
+
+Handles modality-specific parsing and extraction.
+
+Text Parser
+
+Text cleaning and normalization
+
+Tokenization
+
+Semantic chunking
+
+Language detection and metadata extraction
+
+Image Processor
+
+Optical Character Recognition (OCR)
+
+Image caption generation
+
+Object detection
+
+Visual metadata extraction
+
+Document Parser
+
+PDF and DOCX text extraction
+
+Structural analysis
+
+Key section identification
+
+Document metadata extraction
+
+Content Unifier
+
+Aggregates outputs from all input processors into a single normalized context.
+
+Responsibilities include:
+
+Multi-modal content consolidation
+
+Context alignment
+
+Priority-based content ordering
+
+Constraint and reference extraction
+
+Priority order:
+Text → Document Text → Image Text → Image Descriptions
+
+Refinement Engine
+
+The core transformation layer responsible for generating structured prompts.
+
+Prompt Template System
+
+Template selection based on content characteristics
+
+Structured field population
+
+Style and tone enforcement
+
+LLM Integration (Optional)
+
+Content enhancement
+
+Consistency verification
+
+Quality validation
+
+Output Formatting Layer
+
+Ensures strict schema compliance using JSON Schema validation:
+
+Required field enforcement
+
+Structural validation
+
+Format normalization
+
+Response Builder
+
+Final response assembly with metadata enrichment:
+
+Processing timestamp
+
+Input characteristics
+
+Applied assumptions
+
+Template and style metadata
+
+Final output is returned as a validated JSON object.
+
+Prompt Template System
+Template Schema Design
+
+The system uses a JSON Schema–driven template model to enforce structure, predictability, and machine-readability. Core sections include:
+
+Intent – Objective, scope, and success criteria
+
+Context – Background, constraints, assumptions, references
+
+Requirements – Functional, technical, stylistic, formatting
+
+Format – Output structure, style, tone, and length
+
+Template Selection Logic
+
+Templates are selected dynamically based on content analysis attributes such as:
+
+Input modality
+
+Complexity
+
+Intended purpose
+
+Supported template categories include:
+
+Technical Specification
+
+Creative Brief
+
+Analytical Query
+
+Instructional Guide
+
+General Purpose
+
+Refinement Workflow
+
+Analyze unified content
+
+Select the most appropriate template
+
+Populate template fields
+
+Apply stylistic rules
+
+Perform optional LLM enhancement
+
+Validate against schema
+
+Return structured response with metadata
+
 Technical Decisions & Rationale
-1. Template-Based Approach vs. Free-Form Refinement
-Decision: Template-based with flexible field population
+1. Template-Based Refinement
+
+Decision: Structured templates over free-form refinement
 Rationale:
 
-Ensures consistent output structure for downstream processing
+Ensures consistent downstream consumption
 
-Allows for validation and quality control
+Enables automated validation
 
-Maintains flexibility through optional fields and conditional sections
+Simplifies versioning and evolution
 
-Easier to version and evolve than free-form text
+Improves quality control
 
 2. Multi-Stage Processing Pipeline
+
 Decision: Sequential pipeline with clear separation of concerns
 Rationale:
 
-Each stage can be independently tested and optimized
+Improved testability and debugging
 
-Clear error isolation and debugging
+Independent optimization of each stage
 
-Ability to add/remove processing stages as needed
+Easier extensibility
 
-Parallel processing opportunities for batch operations
+Supports batch and parallel execution
 
 3. Schema-Driven Validation
+
 Decision: JSON Schema validation for all outputs
 Rationale:
 
-Machine-readable contract for downstream systems
+Machine-readable contracts
 
-Automatic validation reduces runtime errors
+Reduced runtime errors
 
-Self-documenting output structure
+Self-documenting outputs
 
-Enables automated testing of refinement quality
+Enables automated quality assurance
