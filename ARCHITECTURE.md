@@ -1,234 +1,244 @@
-Architecture Overview
-System Philosophy
+System Overview
+The Multi-Modal Prompt Refinement System is designed to process various input types (text, images, documents) and transform them into structured, AI-ready prompts. The system follows a layered architecture pattern for maintainability, scalability, and clean separation of concerns.
+
+Architecture Diagram
+┌─────────────────────────────────────────────────────────────┐
+│                    CLIENT / API CONSUMER                     │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ HTTP/REST
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    EXPRESS SERVER LAYER                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐  │
+│  │   Routes    │  │ Middleware  │  │ Error Handling     │  │
+│  │  • refine   │  │ • CORS      │  │ • Validation       │  │
+│  │  • batch    │  │ • Body Parse│  │ • File Upload      │  │
+│  │  • health   │  │ • Multer    │  │ • API Errors       │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬─────────┘  │
+│         │                 │                    │            │
+└─────────┼─────────────────┼────────────────────┼────────────┘
+          │                 │                    │
+          ▼                 ▼                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  CONTROLLER LAYER                           │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              refineController.js                      │  │
+│  │  • Request Validation                                │  │
+│  │  • Input Sanitization                               │  │
+│  │  • Service Orchestration                            │  │
+│  │  • Response Formatting                              │  │
+│  └────────────────────────┬─────────────────────────────┘  │
+└───────────────────────────┼─────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   SERVICE LAYER                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │               refineService.js                        │  │
+│  │  • Multi-Modal Processing Logic                      │  │
+│  │  • Style-Based Refinement                            │  │
+│  │  • Template Assembly                                 │  │
+│  │  • Batch Processing                                  │  │
+│  │  • Validation & Quality Checks                       │  │
+│  └─────┬─────────────┬─────────────┬────────────────────┘  │
+│        │             │             │                        │
+│        ▼             ▼             ▼                        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                    │
+│  │Document  │ │ Image    │ │ Text     │                    │
+│  │Processor │ │Processor │ │Processor │                    │
+│  └──────────┘ └──────────┘ └──────────┘                    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   TEMPLATE LAYER                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              promptTemplate.js                        │  │
+│  │  • Style-Specific Templates                          │  │
+│  │  • Dynamic Template Interpolation                    │  │
+│  │  • Structure Validation                              │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   UTILITY LAYER                             │
+│  ┌──────────────┐  ┌─────────────────┐  ┌──────────────┐  │
+│  │ File Handler │  │ Validations     │  │ Constants    │  │
+│  │ • Uploads    │  │ • Input Checks  │  │ • Config     │  │
+│  │ • Storage    │  │ • Schema Valid  │  │ • Messages   │  │
+│  └──────────────┘  └─────────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+Core Components
+1. Server Layer (Express.js)
+Purpose: HTTP server management and routing
 
-The system is built on a Unified Refinement Pipeline model. Regardless of the original input modality, all data is normalized into a canonical textual representation and refined using a controlled, template-driven process.
+Key Files: src/index.js, src/routes/refine.js
 
-Key architectural principles include:
+Responsibilities:
 
-Modularity – Each processing component is isolated and independently replaceable.
+API endpoint routing
 
-Extensibility – New input formats and processing stages can be added with minimal impact.
+Middleware configuration (CORS, body parsing, file upload)
 
-Consistency – Outputs strictly conform to a predefined schema.
+Error handling and response formatting
 
-Fault Tolerance – Graceful degradation when partial data extraction occurs.
+Server lifecycle management
 
-High-Level Architecture Flow
+2. Controller Layer
+Purpose: Request/Response handling
 
-Client Applications
-→ API Gateway Layer
-→ Request Processing Layer
-→ Input Processing Pipeline
-→ Content Unifier
-→ Refinement Engine
-→ Output Formatting Layer
-→ Response Builder
-→ JSON Response
+Key Files: src/controllers/refineController.js
 
-API Gateway Layer
+Responsibilities:
 
-Exposes RESTful endpoints for system interaction:
+Input validation and sanitization
 
-GET /health – Service health check
+Service layer orchestration
 
-POST /refine – Single input refinement
+Response formatting and HTTP status codes
 
-POST /refine/batch – Batch processing support
+Error catching and user-friendly messaging
 
-Request Processing Layer
+3. Service Layer
+Purpose: Business logic and processing orchestration
 
-Responsible for request validation and routing:
+Key Files: src/services/refineService.js
 
-Content-Type detection
+Responsibilities:
 
-File type validation
+Multi-modal input processing coordination
 
-File size enforcement
+Style-based prompt refinement
 
-Routing to appropriate processing modules
+Template assembly and structure generation
 
-Input Processing Pipeline
+Batch processing management
 
-Handles modality-specific parsing and extraction.
+Quality validation and metadata enrichment
 
-Text Parser
+4. Processor Layer
+Purpose: Specialized content processing
 
-Text cleaning and normalization
+Key Files:
 
-Tokenization
+src/services/documentProcessor.js - PDF/DOCX/TXT processing
 
-Semantic chunking
+src/services/imageProcessor.js - Image analysis
 
-Language detection and metadata extraction
+src/services/textProcessor.js - Text refinement
 
-Image Processor
+Responsibilities:
 
-Optical Character Recognition (OCR)
+Content extraction from different file types
 
-Image caption generation
+Format-specific parsing and analysis
 
-Object detection
+Error handling for unsupported formats
 
-Visual metadata extraction
+Fallback mechanisms for failed processing
 
-Document Parser
+5. Template Layer
+Purpose: Prompt structure and formatting
 
-PDF and DOCX text extraction
+Key Files: src/templates/promptTemplate.js
 
-Structural analysis
+Responsibilities:
 
-Key section identification
+Style-specific template definitions
 
-Document metadata extraction
+Dynamic content interpolation
 
-Content Unifier
+Structure validation and completeness checking
 
-Aggregates outputs from all input processors into a single normalized context.
+Metadata integration
 
-Responsibilities include:
+6. Utility Layer
+Purpose: Shared functionality and configuration
 
-Multi-modal content consolidation
+Key Files:
 
-Context alignment
+src/utils/fileHandler.js - File uploads and storage
 
-Priority-based content ordering
+src/utils/validations.js - Input validation
 
-Constraint and reference extraction
+src/config/constants.js - Configuration constants
 
-Priority order:
-Text → Document Text → Image Text → Image Descriptions
+Responsibilities:
 
-Refinement Engine
+Cross-cutting concerns
 
-The core transformation layer responsible for generating structured prompts.
+Configuration management
 
-Prompt Template System
+Reusable helper functions
 
-Template selection based on content characteristics
+Data Flow
+Single Prompt Processing:
+1. Client → HTTP Request (text ± files)
+2. Express → Routes → Controller
+3. Controller → Validate → Service
+4. Service → Process Text → Process Files → Assemble Template
+5. Service → Validate → Add Metadata → Return
+6. Controller → Format Response → Client
+Batch Processing:
+1. Client → HTTP Request (array of prompts)
+2. Express → Routes → Controller
+3. Controller → Validate Each Prompt
+4. Service → For Each Prompt:
+   a. Process Text
+   b. Apply Style
+   c. Generate Template
+   d. Validate
+5. Service → Assemble Batch Results → Add Metadata
+6. Controller → Return Batch Response
+Implementation Details
+Processing Pipeline (refineService.js)
+Input Validation: Check text/files existence
 
-Structured field population
+Text Processing: Style-based refinement (creative, technical, analytical, etc.)
 
-Style and tone enforcement
+File Processing: Parallel extraction with error isolation
 
-LLM Integration (Optional)
+Content Assembly: Combine text + file analysis
 
-Content enhancement
+Template Application: Apply style-specific template
 
-Consistency verification
+Validation: Quality checks on refined prompt
 
-Quality validation
+Metadata Enrichment: Add tracking information
 
-Output Formatting Layer
+Document Processing Strategy (documentProcessor.js)
+PDF Processing: Multi-method extraction (parentheses, regex patterns)
 
-Ensures strict schema compliance using JSON Schema validation:
+Error Handling: Graceful fallbacks with detailed error reports
 
-Required field enforcement
+Content Analysis: Automatic summarization, topic extraction, structure analysis
 
-Structural validation
+Performance: Efficient buffer processing with size limits
 
-Format normalization
+Template System
+Base Structure: Consistent across all styles
 
-Response Builder
+Style Variations: Custom instructions per style type
 
-Final response assembly with metadata enrichment:
+Dynamic Content: File context integration
 
-Processing timestamp
+Quality Standards: Style-appropriate expectations
+Technology Stack
+Runtime: Node.js v18+
 
-Input characteristics
+Framework: Express.js
 
-Applied assumptions
+File Upload: Multer
 
-Template and style metadata
+PDF Processing: Custom implementation with fallbacks
 
-Final output is returned as a validated JSON object.
+DOCX Processing: mammoth (optional)
 
-Prompt Template System
-Template Schema Design
+Image Processing: tesseract.js (optional)
 
-The system uses a JSON Schema–driven template model to enforce structure, predictability, and machine-readability. Core sections include:
+Text Processing: Custom style-based refinement
 
-Intent – Objective, scope, and success criteria
+Validation: Custom validators
 
-Context – Background, constraints, assumptions, references
-
-Requirements – Functional, technical, stylistic, formatting
-
-Format – Output structure, style, tone, and length
-
-Template Selection Logic
-
-Templates are selected dynamically based on content analysis attributes such as:
-
-Input modality
-
-Complexity
-
-Intended purpose
-
-Supported template categories include:
-
-Technical Specification
-
-Creative Brief
-
-Analytical Query
-
-Instructional Guide
-
-General Purpose
-
-Refinement Workflow
-
-Analyze unified content
-
-Select the most appropriate template
-
-Populate template fields
-
-Apply stylistic rules
-
-Perform optional LLM enhancement
-
-Validate against schema
-
-Return structured response with metadata
-
-Technical Decisions & Rationale
-1. Template-Based Refinement
-
-Decision: Structured templates over free-form refinement
-Rationale:
-
-Ensures consistent downstream consumption
-
-Enables automated validation
-
-Simplifies versioning and evolution
-
-Improves quality control
-
-2. Multi-Stage Processing Pipeline
-
-Decision: Sequential pipeline with clear separation of concerns
-Rationale:
-
-Improved testability and debugging
-
-Independent optimization of each stage
-
-Easier extensibility
-
-Supports batch and parallel execution
-
-3. Schema-Driven Validation
-
-Decision: JSON Schema validation for all outputs
-Rationale:
-
-Machine-readable contracts
-
-Reduced runtime errors
-
-Self-documenting outputs
-
-Enables automated quality assurance
+Format: ES Modules
