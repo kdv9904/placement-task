@@ -2,74 +2,66 @@ System Overview
 The Multi-Modal Prompt Refinement System is designed to process various input types (text, images, documents) and transform them into structured, AI-ready prompts. The system follows a layered architecture pattern for maintainability, scalability, and clean separation of concerns.
 
 Architecture Diagram
-┌─────────────────────────────────────────────────────────────┐
-│                    CLIENT / API CONSUMER                     │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ HTTP/REST
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    EXPRESS SERVER LAYER                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐  │
-│  │   Routes    │  │ Middleware  │  │ Error Handling     │  │
-│  │  • refine   │  │ • CORS      │  │ • Validation       │  │
-│  │  • batch    │  │ • Body Parse│  │ • File Upload      │  │
-│  │  • health   │  │ • Multer    │  │ • API Errors       │  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬─────────┘  │
-│         │                 │                    │            │
-└─────────┼─────────────────┼────────────────────┼────────────┘
-          │                 │                    │
-          ▼                 ▼                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  CONTROLLER LAYER                           │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              refineController.js                      │  │
-│  │  • Request Validation                                │  │
-│  │  • Input Sanitization                               │  │
-│  │  • Service Orchestration                            │  │
-│  │  • Response Formatting                              │  │
-│  └────────────────────────┬─────────────────────────────┘  │
-└───────────────────────────┼─────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   SERVICE LAYER                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │               refineService.js                        │  │
-│  │  • Multi-Modal Processing Logic                      │  │
-│  │  • Style-Based Refinement                            │  │
-│  │  • Template Assembly                                 │  │
-│  │  • Batch Processing                                  │  │
-│  │  • Validation & Quality Checks                       │  │
-│  └─────┬─────────────┬─────────────┬────────────────────┘  │
-│        │             │             │                        │
-│        ▼             ▼             ▼                        │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                    │
-│  │Document  │ │ Image    │ │ Text     │                    │
-│  │Processor │ │Processor │ │Processor │                    │
-│  └──────────┘ └──────────┘ └──────────┘                    │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   TEMPLATE LAYER                            │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              promptTemplate.js                        │  │
-│  │  • Style-Specific Templates                          │  │
-│  │  • Dynamic Template Interpolation                    │  │
-│  │  • Structure Validation                              │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   UTILITY LAYER                             │
-│  ┌──────────────┐  ┌─────────────────┐  ┌──────────────┐  │
-│  │ File Handler │  │ Validations     │  │ Constants    │  │
-│  │ • Uploads    │  │ • Input Checks  │  │ • Config     │  │
-│  │ • Storage    │  │ • Schema Valid  │  │ • Messages   │  │
-│  └──────────────┘  └─────────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-Core Components
+┌─────────────────────────────────────────┐
+│           CLIENT / API CONSUMER          │
+└─────────────────────────────────────────┘
+                      │
+                      ▼ HTTP/REST
+┌─────────────────────────────────────────┐
+│             SERVER LAYER                 │
+├─────────────────────────────────────────┤
+│ • Middleware                            │
+│ • Error Handling                        │
+│ • refine                                │
+│ • CORS                                  │
+│ • Validation                            │
+│ • batch                                 │
+│ • Body Parse                            │
+│ • File Upload                           │
+│ • health                                │
+│ • Mutter                                │
+│ • API Errors                            │
+└─────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────┐
+│             SERVICE LAYER                │
+├─────────────────────────────────────────┤
+│ • Request Validation                    │
+│ • Input Sanitization                    │
+│ • Service Orchestration                 │
+│ • Response Formatting                   │
+│ • refineController.js                   │
+│ • Multi-Batch Processing                │
+└─────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────┐
+│         PROCESSING LOGIC                 │
+├─────────────────────────────────────────┤
+│ • Modal Processing Logic                │
+│ • Style-Based Refinement                │
+│ • Template Assembly                     │
+└─────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────┐
+│    VALIDATION & QUALITY CHECKS           │
+├─────────────────────────────────────────┤
+│     ┌─────────┐ ┌─────────┐ ┌─────────┐ │
+│     │Processor│ │Processor│ │Processor│ │
+│     └─────────┘ └─────────┘ └─────────┘ │
+├─────────────────────────────────────────┤
+│   Document    Image        Text         │
+└─────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────┐
+│            ACTIVATION / OUTPUT           │
+├─────────────────────────────────────────┤
+│ • Activate Windows                      │
+│ • Addresser                             │
+└─────────────────────────────────────────┘Core Components
 1. Server Layer (Express.js)
 Purpose: HTTP server management and routing
 
